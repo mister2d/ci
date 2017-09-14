@@ -1,0 +1,82 @@
+version: '3.1'
+
+secrets:
+  secret_key:
+    external: true
+  access_key:
+    external: true
+  key.pem:
+    external: true
+  cert.pem:
+    external: true
+  cert-chain.pem:
+    external: true
+  nginx.conf:
+    external: true
+  haproxy.cfg:
+    external: true
+  httpd.conf:
+    external: true
+
+networks:
+  net:
+#    ipam:
+#      config:
+#        - subnet: 10.0.12.0/24
+
+services:
+  proxy:
+#    image: haproxy:alpine
+    image: httpd:latest
+    networks:
+      - net
+    ports:      
+      - 8443:443
+    depends_on:
+      - nexus
+    secrets:
+      - source: "httpd.conf"
+        target: "/usr/local/apache2/conf/httpd.conf"
+      - source: "haproxy.cfg"
+        target: "/usr/local/etc/haproxy/haproxy.cfg"
+      - source: "key.pem"
+#        target: "/certs/server.key"
+        target: "/usr/local/apache2/conf/extra/server.key"
+      - source: "cert.pem"
+#        target: "/certs/server.crt"
+        target: "/usr/local/apache2/conf/extra/server.crt"
+      - source: "cert-chain.pem"
+        target: "/certs/cert-chain.pem"
+
+  nexus:
+    image: sonatype/nexus3
+    volumes:
+      - nexus:/nexus-data
+    networks:
+      - net
+
+  # gitlab:
+    # image: gitlab/gitlab-ce
+    # networks:
+      # - ci-network
+    # environment:
+      # GITLAB_OMNIBUS_CONFIG: |
+        # external_url 'https://hacienda.home.local:8443/gitlab'
+        # gitlab_rails['gitlab_shell_ssh_port'] = 10022
+    # ports:
+      # - 10022:22
+    # volumes:
+      # - gitlab-config:/etc/gitlab
+      # - gitlab-data:/var/opt/gitlab
+
+volumes:
+  nexus:
+#  gitlab-config:
+#  gitlab-data:
+#    driver: minio/minfs
+#    driver_opts:
+#      endpoint: http://10.0.1.7:9000
+#      access-key: accesskey
+#      secret-key: secretkey
+#      bucket: nexus
+#      opts: "uid=200,gid=200"
